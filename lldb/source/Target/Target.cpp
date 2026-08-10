@@ -2541,8 +2541,7 @@ ModuleSP Target::GetOrCreateModule(const ModuleSpec &orig_module_spec,
         // module in the shared module cache.
         if (m_platform_sp) {
           error = m_platform_sp->GetSharedModule(
-              module_spec, m_process_sp.get(), module_sp, &old_modules,
-              &did_create_module);
+              module_spec, *this, module_sp, &old_modules, &did_create_module);
         } else {
           error = Status::FromErrorString("no platform is currently set");
         }
@@ -2741,12 +2740,13 @@ Target::GetScratchTypeSystemForLanguage(lldb::LanguageType language,
 
 CompilerType
 Target::GetRegisterType(const std::string &name,
-                        const lldb_private::RegisterTypeFlags &flags,
+                        const lldb_private::RegisterType &type_info,
                         uint32_t byte_size) {
   if (!m_register_type_builder_sp)
     m_register_type_builder_sp = PluginManager::GetRegisterTypeBuilder(*this);
   assert(m_register_type_builder_sp);
-  return m_register_type_builder_sp->GetRegisterType(name, flags, byte_size);
+  return m_register_type_builder_sp->GetRegisterType(name, type_info,
+                                                     byte_size);
 }
 
 std::vector<lldb::TypeSystemSP>
@@ -2988,7 +2988,7 @@ ExpressionResults Target::EvaluateExpression(
             GetScratchTypeSystemForLanguage(eLanguageTypeC);
     if (auto err = type_system_or_err.takeError()) {
       LLDB_LOG_ERROR(GetLog(LLDBLog::Target), std::move(err),
-                     "Unable to get scratch type system");
+                     "Unable to get scratch type system: {0}");
     } else {
       auto ts = *type_system_or_err;
       if (!ts)
