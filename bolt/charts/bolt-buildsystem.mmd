@@ -1,0 +1,238 @@
+---
+config:
+  layout: elk
+  flowchart:
+    curve: stepBefore
+---
+flowchart TD
+  Start(["Start: Configure LLVM/BOLT build"])
+  Options(["CMake options and detected dependencies"])
+  BuildTargets(["Determine BOLT_TARGETS_TO_BUILD"])
+  RuntimeOpt{"BOLT_ENABLE_RUNTIME enabled?"}
+  Standalone{"BOLT_BUILT_STANDALONE?"}
+  Start --> Options
+  Options --> BuildTargets
+  Options --> RuntimeOpt
+  Options --> Standalone
+  subgraph Libraries["BOLT libraries"]
+    direction LR
+    LibRoot(["lib/CMakeLists.txt"])
+    Utils(["LLVMBOLTUtils<br/>CommandLineOpts.cpp<br/>Utils.cpp<br/>Generated VCSVersion.inc"])
+    VCS(["GenerateVersionFromVCS.cmake"])
+    VersionHeader(["Generated VCSVersion.inc"])
+    Core(["LLVMBOLTCore<br/>Core binary and object model"])
+    Passes(["LLVMBOLTPasses<br/>Optimization and analysis passes"])
+    Profile(["LLVMBOLTProfile<br/>Profile readers, writers, aggregation"])
+    Rewrite(["LLVMBOLTRewrite<br/>Binary rewriting and linking"])
+    RuntimeLibs(["LLVMBOLTRuntimeLibs<br/>RuntimeLibrary.cpp<br/>HugifyRuntimeLibrary.cpp<br/>InstrumentationRuntimeLibrary.cpp"])
+    TargetRoot(["lib/Target"])
+    TargetSelection(["For each configured target"])
+    TargetAArch64(["LLVMBOLTTargetAArch64"])
+    TargetRISCV(["LLVMBOLTTargetRISCV"])
+    TargetX86(["LLVMBOLTTargetX86"])
+    AArch64Gen{"Standalone build?"}
+    RISCVGen{"Standalone build?"}
+    X86Gen{"Standalone build?"}
+    AArch64TableGen(["AArch64CommonTableGen<br/>LLVM TableGen generated headers"])
+    RISCVTableGen(["RISCVCommonTableGen<br/>LLVM TableGen generated headers"])
+    X86TableGen(["X86CommonTableGen<br/>LLVM TableGen generated headers"])
+    LibRoot --> Utils
+    LibRoot --> Core
+    LibRoot --> Passes
+    LibRoot --> Profile
+    LibRoot --> Rewrite
+    LibRoot --> RuntimeLibs
+    LibRoot --> TargetRoot
+    Utils --> VCS
+    VCS --> VersionHeader
+    Core --> Utils
+    Passes --> Core
+    Passes --> Utils
+    Profile --> Core
+    Profile --> Utils
+    Rewrite --> Core
+    Rewrite --> Passes
+    Rewrite --> Profile
+    Rewrite --> RuntimeLibs
+    Rewrite --> Utils
+    Rewrite --> TargetLibs
+    RuntimeLibs --> Core
+    RuntimeLibs --> Passes
+    RuntimeLibs --> Utils
+    TargetRoot --> TargetSelection
+    TargetSelection --> TargetAArch64
+    TargetSelection --> TargetRISCV
+    TargetSelection --> TargetX86
+    TargetAArch64 --> AArch64Gen
+    TargetRISCV --> RISCVGen
+    TargetX86 --> X86Gen
+    AArch64Gen -->|Yes| AArch64TableGen
+    RISCVGen -->|Yes| RISCVTableGen
+    X86Gen -->|Yes| X86TableGen
+    AArch64TableGen --> TargetAArch64
+    RISCVTableGen --> TargetRISCV
+    X86TableGen --> TargetX86
+    TargetAArch64 --> Core
+    TargetAArch64 --> Utils
+    TargetRISCV --> Core
+    TargetX86 --> Core
+    TargetX86 --> Utils
+  end
+  BuildTargets --> LibRoot
+  subgraph Runtime["Standalone runtime build"]
+    direction LR
+    RuntimeRoot(["runtime/CMakeLists.txt"])
+    RuntimeConfig(["Check elf.h<br/>Configure config.h"])
+    InstrRuntime(["bolt_rt_instr<br/>Static runtime library"])
+    HugifyRuntime(["bolt_rt_hugify<br/>Static runtime library"])
+    RuntimeFlags(["Freestanding runtime compiler flags"])
+    RuntimeInstall(["Install runtime archives"])
+    Darwin{"Clang on Darwin?"}
+    OSXRuntime(["bolt_rt_instr_osx<br/>x86_64 Darwin runtime"])
+    RuntimeRoot --> RuntimeConfig
+    RuntimeConfig --> InstrRuntime
+    RuntimeConfig --> HugifyRuntime
+    InstrRuntime --> RuntimeFlags
+    HugifyRuntime --> RuntimeFlags
+    RuntimeFlags --> RuntimeInstall
+    RuntimeRoot --> Darwin
+    Darwin -->|Yes| OSXRuntime
+    OSXRuntime --> RuntimeInstall
+  end
+  Standalone --> RuntimeRoot
+  RuntimeOpt -->|Yes| RuntimeRoot
+  RuntimeOpt -->|No| NoRuntime(["No runtime dependency for llvm-bolt"])
+  subgraph Tools["BOLT tools"]
+    direction LR
+    ToolsRoot(["tools/CMakeLists.txt"])
+    Driver(["llvm-bolt<br/>Main BOLT driver"])
+    Fuzzer(["llvm-bolt-fuzzer"])
+    BatDump(["llvm-bat-dump"])
+    MergeFdata(["merge-fdata"])
+    Heatmap(["llvm-bolt-heatmap"])
+    HeatmapTool(["llvm-bolt-heatmap"])
+    BinaryAnalysis(["llvm-bolt-binary-analysis"])
+    DriverRuntime{"Runtime enabled?"}
+    Symlinks(["perf2bolt and llvm-boltdiff symlinks"])
+    Intrinsics(["intrinsics_gen"])
+    Relocations{"Unix and not Apple with tests?"}
+    EmitRelocs(["Emit relocations"])
+    BoltAggregate(["bolt aggregate target"])
+    ToolsRoot --> Driver
+    ToolsRoot --> Fuzzer
+    ToolsRoot --> BatDump
+    ToolsRoot --> MergeFdata
+    ToolsRoot --> Heatmap
+    ToolsRoot --> BinaryAnalysis
+    Driver --> Profile
+    Driver --> Rewrite
+    Driver --> Utils
+    Driver --> DriverRuntime
+    DriverRuntime -->|Yes| RuntimeRoot
+    Driver --> Symlinks
+    Fuzzer --> Rewrite
+    BatDump --> Profile
+    MergeFdata --> Intrinsics
+    MergeFdata --> Relocations
+    Relocations -->|Yes| EmitRelocs
+    HeatmapTool --> Profile
+    HeatmapTool --> Rewrite
+    HeatmapTool --> Utils
+    BinaryAnalysis --> Rewrite
+    BinaryAnalysis --> Utils
+    Driver --> BoltAggregate
+    Heatmap --> BoltAggregate
+    BinaryAnalysis --> BoltAggregate
+    MergeFdata --> BoltAggregate
+  end
+  Rewrite --> ToolsRoot
+  Profile --> ToolsRoot
+  Utils --> ToolsRoot
+  subgraph Tests["Tests"]
+    direction LR
+    TestsRoot(["test/CMakeLists.txt"])
+    LitConfig(["Configure lit.site.cfg.py"])
+    TestDependencies(["bolt-test-depends"])
+    LLVMTools(["LLVM and BOLT test tools"])
+    RegressionSuite(["check-bolt<br/>BOLT regression tests"])
+    UnitRoot(["unittests/CMakeLists.txt"])
+    UnitAggregate(["BoltUnitTests"])
+    CoreTests(["CoreTests"])
+    ProfileTests(["ProfileTests"])
+    PassTests(["PassTests"])
+    UnitDeps(["bolt-unit-test-deps"])
+    UnitSuite(["check-bolt-unit<br/>Unit test suite"])
+    TestsRoot --> LitConfig
+    TestsRoot --> TestDependencies
+    TestDependencies --> LLVMTools
+    TestsRoot --> RegressionSuite
+    RegressionSuite --> TestDependencies
+    UnitRoot --> UnitAggregate
+    UnitRoot --> CoreTests
+    UnitRoot --> ProfileTests
+    UnitRoot --> PassTests
+    CoreTests --> Core
+    CoreTests --> Rewrite
+    CoreTests --> Profile
+    CoreTests --> Utils
+    CoreTests --> TargetLibs
+    ProfileTests --> Core
+    ProfileTests --> Profile
+    ProfileTests --> TargetParser
+    PassTests --> Core
+    PassTests --> Rewrite
+    PassTests --> Passes
+    PassTests --> Profile
+    PassTests --> Utils
+    PassTests --> TargetLibs
+    UnitRoot --> UnitDeps
+    UnitDeps --> TestDependencies
+    UnitRoot --> UnitSuite
+    UnitSuite --> UnitDeps
+  end
+  subgraph Docs["Documentation and installation"]
+    direction LR
+    DocsRoot(["docs/CMakeLists.txt"])
+    DoxygenEnabled{"Doxygen enabled and found?"}
+    DoxygenConfig(["Configure Doxygen"])
+    DoxygenTarget(["doxygen-bolt"])
+    DoxygenOutput(["Generate HTML documentation"])
+    DoxygenAggregate{"LLVM_BUILD_DOCS?"}
+    DoxygenTargetAggregate(["doxygen aggregate target"])
+    InstallDocs{"Toolchain-only install disabled?"}
+    DocsInstall(["Install docs/html to docs/html"])
+    SphinxEnabled{"LLVM_ENABLE_SPHINX and Sphinx found?"}
+    SphinxHTML{"SPHINX_OUTPUT_HTML?"}
+    SphinxTarget(["Generate BOLT HTML documentation"])
+    DocsRoot --> DoxygenEnabled
+    DoxygenEnabled -->|Yes| DoxygenConfig
+    DoxygenConfig --> DoxygenTarget
+    DoxygenTarget --> DoxygenOutput
+    DoxygenTarget --> DoxygenAggregate
+    DoxygenAggregate -->|Yes| DoxygenTargetAggregate
+    DoxygenOutput --> InstallDocs
+    InstallDocs -->|Yes| DocsInstall
+    DocsRoot --> SphinxEnabled
+    SphinxEnabled -->|Yes| SphinxHTML
+    SphinxHTML -->|Yes| SphinxTarget
+  end
+  Options --> DocsRoot
+  Options --> TestsRoot
+  Options --> UnitRoot
+  Core --> LinkLLVM
+  Passes --> LinkLLVM
+  Profile --> LinkLLVM
+  Rewrite --> LinkLLVM
+  RuntimeLibs --> LinkLLVM
+  TargetLibs["Configured target libraries"] --> LinkLLVM
+  ToolsRoot --> LinkLLVM
+  LinkLLVM --> Compile(["Compile C++ sources"])
+  Compile --> LinkLibraries(["Link BOLT libraries and tools"])
+  RuntimeInstall --> Install(["Install build artifacts"])
+  LinkLibraries --> Install
+  DocsInstall --> Install
+  SphinxTarget --> Install
+  RegressionSuite --> Validation(["Build and test validation"])
+  UnitSuite --> Validation
+  Install --> Finish(["Finish: BOLT binaries, libraries, runtimes, tests, and documentation"])
+  Validation --> Finish
