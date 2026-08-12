@@ -60,10 +60,10 @@ static StringRef ToolName;
 // The basename of the invoked program.
 static StringRef Stem;
 
-static void printRanLibHelp(StringRef ToolName) {
+static void printRanLibHelp(StringRef Tool) {
   outs() << "OVERVIEW: LLVM ranlib\n\n"
          << "Generate an index for archives\n\n"
-         << "USAGE: " + ToolName + " archive...\n\n"
+         << "USAGE: " + Tool + " archive...\n\n"
          << "OPTIONS:\n"
          << "  -h --help             - Display available options\n"
          << "  -V --version          - Display the version of this program\n"
@@ -74,7 +74,7 @@ static void printRanLibHelp(StringRef ToolName) {
             "should be generated if they do not already exist (AIX OS only)\n";
 }
 
-static void printArHelp(StringRef ToolName) {
+static void printArHelp(StringRef Tool) {
   const char ArOptions[] =
       R"(OPTIONS:
   --format              - archive format to create
@@ -129,10 +129,10 @@ MODIFIERS:
 )";
 
   outs() << "OVERVIEW: LLVM Archiver\n\n"
-         << "USAGE: " + ToolName +
+         << "USAGE: " + Tool +
                 " [options] [-]<operation>[modifiers] [relpos] "
                 "[count] <archive> [files]\n"
-         << "       " + ToolName + " -M [< mri-script]\n\n";
+         << "       " + Tool + " -M [< mri-script]\n\n";
 
   outs() << ArOptions;
 }
