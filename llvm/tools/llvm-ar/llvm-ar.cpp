@@ -149,7 +149,7 @@ static bool ParsingMRIScript;
 
 // Show the error plus the usage message, and exit.
 [[noreturn]] static void badUsage(Twine Error) {
-  WithColor::error(errs(), ToolName) << Error << "\n";
+  WithColor::error(errs(), Stem) << Error << "\n";
   printHelpMessage();
   exit(1);
 }
@@ -157,10 +157,10 @@ static bool ParsingMRIScript;
 // Show the error message and exit.
 [[noreturn]] static void fail(Twine Error) {
   if (ParsingMRIScript) {
-    WithColor::error(errs(), ToolName)
+    WithColor::error(errs(), Stem)
         << "script line " << MRILineNumber << ": " << Error << "\n";
   } else {
-    WithColor::error(errs(), ToolName) << Error << "\n";
+    WithColor::error(errs(), Stem) << Error << "\n";
   }
   exit(1);
 }
@@ -188,7 +188,7 @@ static void failIfError(Error E, Twine Context = "") {
 }
 
 static void warn(Twine Message) {
-  WithColor::warning(errs(), ToolName) << Message << "\n";
+  WithColor::warning(errs(), Stem) << Message << "\n";
 }
 
 static SmallVector<const char *, 256> PositionalArgs;
@@ -751,7 +751,7 @@ static void performReadOperation(ArchiveOperation Operation,
   if (Members.empty())
     return;
   for (StringRef Name : Members)
-    WithColor::error(errs(), ToolName) << "'" << Name << "' was not found\n";
+    WithColor::error(errs(), Stem) << "'" << Name << "' was not found\n";
   exit(1);
 }
 
