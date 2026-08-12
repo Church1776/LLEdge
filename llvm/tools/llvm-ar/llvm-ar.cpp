@@ -57,7 +57,7 @@ using namespace llvm::object;
 // The name this program was invoked as.
 static StringRef ToolName;
 
-// The basename of this program.
+// The basename of the invoked program.
 static StringRef Stem;
 
 static void printRanLibHelp(StringRef ToolName) {
