@@ -8,7 +8,6 @@ CompileFlags:
     - -Wall
     - -Wextra
     - -Wpedantic
-
     - -IC:\LLEdge\bolt\include
     - -IC:\LLEdge\clang\include
     - -IC:\LLEdge\clang-tools-extra\clang-apply-replacements\include
