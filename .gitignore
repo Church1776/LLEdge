@@ -80,7 +80,9 @@ AGENTS.md
 # pythonenv for github Codespaces
 pythonenv*
 # clangd index. (".clangd" is a config file now, thus trailing slash)
+.clangd/
 .cache
+.clangd
 # static analyzer regression testing project files
 /clang/utils/analyzer/projects/*/CachedSource
 /clang/utils/analyzer/projects/*/PatchedSource
